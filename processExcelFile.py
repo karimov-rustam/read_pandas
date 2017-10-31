@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from sqlalchemy import create_engine
 import pandas as pd
 import argparse
 
@@ -29,4 +30,19 @@ if __name__ == "__main__":
                         type=float)
     args = parser.parse_args()
     df = processExcelFile(args.name, args.course)
-    print(df.head(10))
+
+    engine = create_engine('postgres://lxuser@localhost:5432/test_db')
+    database = pd.io.sql.SQLDatabase(engine)
+
+    if not database.has_table('items'):
+        args = ['items', database]
+        kwargs = {
+            'frame': df,
+            'index': True,
+            'index_label': 'id',
+            'keys': 'id'
+        }
+        table = pd.io.sql.SQLTable(*args, **kwargs)
+        table.create()
+
+    df.to_sql('items', con=engine, if_exists='append', index=False)
